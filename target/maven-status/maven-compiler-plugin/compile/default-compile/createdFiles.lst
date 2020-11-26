@@ -1,5 +1,9 @@
-com\vgernsoft\markup\Markup.class
-com\vgernsoft\markup\MarkupController.class
-com\vgernsoft\markup\Application.class
-com\vgernsoft\markup\Markup$MarkupBuilder.class
-com\vgernsoft\markup\MarkupAdminCOntroller.class
+com/vgernsoft/markup/Markup.class
+com/vgernsoft/markup/JsonNodeConverter.class
+com/vgernsoft/markup/MarkupEngine.class
+com/vgernsoft/markup/MarkupAdminController.class
+com/vgernsoft/markup/MarkupRule.class
+com/vgernsoft/markup/Application.class
+com/vgernsoft/markup/SpringFoxConfig.class
+com/vgernsoft/markup/MarkupRuleRepository.class
+com/vgernsoft/markup/MarkupController.class
