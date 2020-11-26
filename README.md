@@ -102,6 +102,7 @@ and apply the markup giving a result of,
 
 - order of rules,
 - do rules accumulate, or apply independently of each other...?
+- rule partitioning, if then else whatever who cares and so on...
 - for example, add 5 then add 5%
   - is it (total + 5) + (total + 5%)
   - is it (total + 5) \* 5%
