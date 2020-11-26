@@ -1,0 +1,5 @@
+com\vgernsoft\markup\Markup.class
+com\vgernsoft\markup\MarkupController.class
+com\vgernsoft\markup\Application.class
+com\vgernsoft\markup\Markup$MarkupBuilder.class
+com\vgernsoft\markup\MarkupAdminCOntroller.class
