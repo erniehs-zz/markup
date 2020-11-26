@@ -1,5 +1,7 @@
 # markup
 
+![Java CI with Maven](https://github.com/erniehs/markup/workflows/Java%20CI%20with%20Maven/badge.svg)
+
 a very simple markup "engine".
 
 ## some spec
