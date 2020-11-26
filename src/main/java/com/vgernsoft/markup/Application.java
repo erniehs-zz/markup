@@ -92,7 +92,6 @@ class MarkupEngine {
 
     public Markup markup(final JsonNode data) {
         Markup markup = new Markup();
-        // nothing fancy ere just try them all...
         markupRuleRepository.findAll().forEach(mr -> { 
             JsonPath.parse(data).read(mr.getRule(), JsonNode.class);
         });
