@@ -6,7 +6,8 @@ a very simple markup "engine".
 
 - as a markup engine i should,
   - take any correctly structured json as an input
-  - take correcly structured json path as markup "rules"
+  - take correctly structured json path as markup trigger
+  - take correctly structured json as the markup to apply
   - return correctly structured json as markup results
     - the original json supplied
     - the markup "rules" fired
