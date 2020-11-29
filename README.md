@@ -2,7 +2,7 @@
 
 ![Java CI with Maven](https://github.com/erniehs/markup/workflows/Java%20CI%20with%20Maven/badge.svg)
 
-a very simple markup "engine".
+a very simple markup "engine".  just to demonstrate the possibility of marking up arbitrary json.
 
 ## some spec
 
@@ -12,7 +12,7 @@ a very simple markup "engine".
   - take correctly structured json as the markup to apply
   - return correctly structured json as markup results
     - the original json supplied
-    - the markup "rules" fired
+    - the markup "rules" fired, in order (see below)
     - the markup rules evaluation
 
 for example,
@@ -41,11 +41,11 @@ with markup rules,
 
 ```json
 {
-  "rule": "cheese markup, tax those who love cheese...!",
-  "pattern": "$..customers[?(@.cheese)]",
-  "markup": {
-    "pattern": "$.account.total",
-    "add": 5.23
+  "name": "cheese markup, tax those who love cheese...!",
+  "trigger": "$..customers[?(@.cheese)]",
+  "pattern": "$.account.total",
+  "operation": "add",
+  "value": 5.23
   }
 }
 ```

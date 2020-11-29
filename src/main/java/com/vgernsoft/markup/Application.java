@@ -1,19 +1,17 @@
 package com.vgernsoft.markup;
 
-import java.util.List;
-import java.util.OptionalInt;
-import java.util.UUID;
-import java.util.Optional;
-import javax.persistence.AttributeConverter;
-import javax.persistence.Convert;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import java.util.*;
+import java.util.stream.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import javax.persistence.*;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import com.jayway.jsonpath.JsonPath;
-
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -21,83 +19,94 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
+import io.swagger.v3.oas.annotations.Operation;
+import lombok.*;
+import lombok.extern.slf4j.*;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
-class JsonNodeConverter implements AttributeConverter<JsonNode, String> {
+enum OpCode {
+    ADD, SUB, MUL;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
-
-    @Override
-    public String convertToDatabaseColumn(JsonNode jsonNode) {
-        return jsonNode.toString();
-    }
-
-    @Override
-    public JsonNode convertToEntityAttribute(String string) {
-        try {
-            return objectMapper.readTree(string);
-        } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException(e);
+    public double exec(double a, double b) {
+        switch (this) {
+            case ADD:
+                return a + b;
+            case MUL:
+                return a * b;
+            case SUB:
+                return a - b;
+            default:
+                return 0;
         }
     }
 }
 
 @Data
-@NoArgsConstructor
-class Markup {
+@Entity
+@Builder
+@AllArgsConstructor(access = AccessLevel.PACKAGE)
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+class MarkupRule {
+
+    @Id
+    @GeneratedValue(generator = "system-uuid")
+    @JsonProperty(access = Access.READ_ONLY)
+    private UUID id;
+
+    private String name;
+
+    private String trigger;
+
+    private String pattern;
+
+    private OpCode operation;
+
+    private String value;
+
+    private Integer triggerOrder;
+}
+
+@Data
+@Builder
+class MarkupResult {
     private JsonNode data;
 
-    private JsonNode fired;
+    private List<UUID> fired;
 
     private JsonNode result;
 }
 
-@Data
-@Entity
-@NoArgsConstructor
-class MarkupRule {
-
-    @Id
-    private UUID id;
-
-    private String rule;
-
-    @Convert(converter = JsonNodeConverter.class)
-    private JsonNode markup;
-}
-
 interface MarkupRuleRepository extends JpaRepository<MarkupRule, UUID> {
+
+    List<MarkupRule> findAllByOrderByTriggerOrderAsc();
 }
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 class MarkupEngine {
 
+    private final com.jayway.jsonpath.Configuration jacksonJsonPathConfiguration;
+
     private final MarkupRuleRepository markupRuleRepository;
 
-    public Markup markup(final JsonNode data) {
-        Markup markup = new Markup();
-        markupRuleRepository.findAll().forEach(mr -> { 
-            JsonPath.parse(data).read(mr.getRule(), JsonNode.class);
-        });
-        return markup;
+    public MarkupResult markup(final JsonNode data) {
+        // TODO implement actual trigger to change data based upon opcode and pattern
+        log.debug("requesting markup for {}", data);
+        return MarkupResult.builder().data(data)
+                .fired(markupRuleRepository.findAllByOrderByTriggerOrderAsc().stream()
+                        .filter(mr -> !((ArrayNode) JsonPath.using(jacksonJsonPathConfiguration).parse(data)
+                                .read(mr.getTrigger())).isEmpty())
+                        .map(MarkupRule::getId).collect(Collectors.toList()))
+                .result(data.deepCopy()).build();
     }
-} 
+}
 
 @RestController
 @RequiredArgsConstructor
@@ -107,7 +116,7 @@ class MarkupController {
     private final MarkupEngine markupEngine;
 
     @PostMapping()
-    public ResponseEntity<Markup> markup(@RequestBody JsonNode data) {
+    public ResponseEntity<MarkupResult> markup(@RequestBody JsonNode data) {
         return ResponseEntity.ok(markupEngine.markup(data));
     }
 }
@@ -129,6 +138,7 @@ class MarkupAdminController {
         return ResponseEntity.ok(markupRuleRepository.findAll());
     }
 
+    @Operation(summary = "add markup", description = "add a new markup to the engine")
     @PostMapping()
     public ResponseEntity<MarkupRule> create(@RequestBody MarkupRule markupRule) {
         return ResponseEntity.ok(markupRuleRepository.save(markupRule));
@@ -145,6 +155,12 @@ class MarkupAdminController {
 @EnableSwagger2
 @Configuration
 class SpringFoxConfig {
+
+    @Bean
+    public com.jayway.jsonpath.Configuration jacksonJsonPathConfiguration() {
+        return com.jayway.jsonpath.Configuration.builder().jsonProvider(new JacksonJsonNodeJsonProvider())
+                .mappingProvider(new JacksonMappingProvider()).build();
+    }
 
     @Bean
     public Docket api() {
